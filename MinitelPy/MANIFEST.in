@@ -1,4 +1,0 @@
-# Liste des fichiers constituant la bibliothèque PyMinitel pour distutils
-include setup.py
-recursive-include minitel *.py
-
