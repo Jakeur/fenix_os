@@ -57,6 +57,20 @@ class Wrapper: # To get linked with the system that communicate directly with th
         s_send.ajoute(text)
         self.minitel.envoyer(s_send)
 
+    def WriteLnString(self, text = ""):
+        nb_column = 40
+        nb_line = 24
+        if (self.minitel.capacite['80colonnes'] == True):
+            if (self.minitel.mode == 'MIXTE'):
+                nb_column = 80
+        space_to_add = nb_column - (len(text) % nb_column)
+        for i in range(space_to_add):
+            text += " "
+        text = text[0:nb_column * nb_line]
+        s_send = Sequence()
+        s_send.ajoute(text)
+        self.minitel.envoyer(s_send)
+
     def GetMinitel(self):
         return (self.minitel)
 

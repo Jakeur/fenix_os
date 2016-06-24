@@ -1,4 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__all__ = ["Core", "FenixTwitter"]
+__all__ = ["Minitel", "Sequence"]
+
