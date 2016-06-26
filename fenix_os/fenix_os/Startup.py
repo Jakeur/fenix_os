@@ -8,9 +8,12 @@ from fenix_api.FenixTwitter import FenixTwitter
 # System dependencies
 from multiprocessing import Process
 from threading import Thread, Condition
+from stat import S_ISREG, ST_CTIME, ST_MODE
 import threading
 import time
 import sys
+import urllib2
+import os
 
 """
 Class attribute :
@@ -40,9 +43,16 @@ class Startup: # To get linked with the system that communicate directly with th
 
     def TwitterThreadGetStream(self, cond):
         while True:
-            print("loading all tweets")
             self.lock_input = True
+            print("loading all tweets")
             tweets = self.t.GetTweets()
+
+            medias = self.t.GetMediaList()
+            medias = self.UpdateNewMedias(medias)
+            for tmp in medias:
+                print(tmp)
+            self.GetImages(medias)
+            
             self.lock_input = False
             self.w.ClearScreen()
             self.WriteHeader()
@@ -69,8 +79,11 @@ class Startup: # To get linked with the system that communicate directly with th
                 self.w.WriteLnString()
                 self.w.WriteLnString()
                 i += 1
-                if i >= 15: # No more than 15 latest tweets displayed
-                    time.sleep(10)                
+                if i >= 12: # No more than 12 latest tweets displayed
+                    time.sleep(10)
+                    self.lock_input = True
+                    self.DisplayTwitterImages()
+                    self.lock_input = False
                     break        
                 if i % 3 == 0: # 3 tweets per page
                     time.sleep(10)
@@ -109,7 +122,6 @@ class Startup: # To get linked with the system that communicate directly with th
                 msg = "#VivaTech " + msg
                 #answer = self.t.SendTweet(msg) # Send Tweet
                 time.sleep(2)
-                #print(answer.status_code)
                 print("msg: " + msg)
 
             # Resume Twitter Stream
@@ -128,6 +140,7 @@ class Startup: # To get linked with the system that communicate directly with th
         self.w.DisplayCursor(False)
         self.w.WriteLnString(self.w.GetModel()+ " launched successfully")
         self.t = FenixTwitter()
+        self.ClearImagesFolder()
         #self.TryConnectTwitter()
 
         # Init suspend Twitter stream during message writing
@@ -144,6 +157,84 @@ class Startup: # To get linked with the system that communicate directly with th
         self.thread_twitter_send.join()
         self.w.Disconnect()
         print("disconnected")
+
+    def DisplayTwitterImages(self):
+        image_list = []
+        folder = "./twitter_images/"
+        i = 0
+
+        try:
+            entries = (os.path.join(folder, fn) for fn in os.listdir(folder))
+            entries = ((os.stat(path), path) for path in entries)
+            entries = ((stat.st_ctime, path) for stat, path in entries if S_ISREG(stat[ST_MODE]))
+            for cdate, path in sorted(entries):
+                if (i >= 5): # Number of images to display
+                    break
+                i += 1
+                image_list.append(path)        
+
+        except Exception as e:
+            print(e)
+        self.w.DisplayImageList(image_list)
+            
+    # Avoid to download an already existing image in the Rasp
+    def UpdateNewMedias(self, url_list):
+        medias = []
+        delete_img = False
+        keep_img = False
+        folder = "./twitter_images/"
+        try:
+            for img in os.listdir(folder): # Delete too old image
+                keep_img = False
+                for url in url_list:
+                    if (img == os.path.basename(url)):
+                        keep_img = True
+                        break
+                if (keep_img == False):
+                    print("delete file: " + img)
+                    self.DeleteImageFile(img)
+
+            for url in url_list: # Avoid re-dl existing image
+                for img in os.listdir(folder):
+                    if (img == os.path.basename(url)):
+                        delete_img = True
+                        break
+                if (delete_img == True):
+                    delete_img = False
+                else:
+                    medias.append(url)
+        except Exception as e:
+            print(e)
+        return medias
+
+    def GetImages(self, url_list):
+        for url in url_list:
+            try:
+                image = urllib2.urlopen(url)
+                local_file = open("./twitter_images/" + os.path.basename(url), 'wb')
+                local_file.write(image.read())
+                local_file.close()
+            except Exception as e:
+                print(e)
+
+    def ClearImagesFolder(self):
+        folder = "./twitter_images/"
+        for img in os.listdir(folder):
+            img_path = os.path.join(folder, img)
+            try:
+                if os.path.isfile(img_path):
+                    os.unlink(img_path)
+            except Exception as e:
+                print(e)
+
+    def DeleteImageFile(self, img_name):
+        folder = "./twitter_images/"
+        img_path = os.path.join(folder, img_name)
+        try:
+            if os.path.isfile(img_path):
+                os.unlink(img_path)
+        except Exception as e:
+            print(e)
 
     def WriteHeader(self):
         self.w.WriteLnString("Fenix OS v0.2 - #VivaTech Twitter stream")

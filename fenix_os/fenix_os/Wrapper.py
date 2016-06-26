@@ -3,7 +3,11 @@
 
 from minitel.Minitel import Minitel
 from minitel.Sequence import Sequence
+from minitel.ImageMinitel import ImageMinitel
 from minitel.constantes import (ENVOI, ANNULATION)
+
+from PIL import Image
+from time import sleep
 
 """
 Class attribute :
@@ -38,6 +42,24 @@ class Wrapper: # To get linked with the system that communicate directly with th
         print("{} - {}".format(self.minitel.capacite['nom'], self.minitel.capacite['vitesse']))
         self.minitel.efface()
         self.minitel.debut_ligne()
+
+    def DisplayImageList(self, file_list):
+        largeur = 80
+        hauteur = 72
+        colonne = 1
+        ligne = 1
+        self.minitel.efface()
+        for fichier in file_list:
+                image = Image.open(fichier)
+                image = image.resize((largeur, hauteur), Image.ANTIALIAS)
+
+                image_minitel = ImageMinitel(self.minitel)
+                image_minitel.importer(image)
+                image_minitel.envoyer(colonne, ligne)
+
+                self.minitel.sortie.join()
+                sleep(3)
+                self.minitel.efface()
 
     def ReadString(self, end = ENVOI): #TODO: faire un while plus propre while(valeurs != end)
         content = ""
