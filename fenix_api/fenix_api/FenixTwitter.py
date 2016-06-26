@@ -20,10 +20,14 @@ class FenixTwitter:
         r = self.api.request('statuses/home_timeline', {'count':1})
         return r
 
+    def SendTweet(self, tweet):
+        r = self.api.request('statuses/update', {'status':tweet})
+        return r
+
     def GetTweets(self):
         r = ''
         try:
-            r = self.api.request('search/tweets', {'q':'@epitechtoulouse', 'count':'100'})
+            r = self.api.request('search/tweets', {'q':'#VivaTech', 'count':'200'})
         except Exception as e:
            time.sleep(1)
            print("failed")
@@ -31,6 +35,8 @@ class FenixTwitter:
         tweets = []
         for item in r:
             item['text'].encode("utf-8", errors='ignore')
+            #print(item['media_url'])
+            item['text'] = item['text'].replace('\n', '. ')
             if item['text'][0:2] != 'RT':
                 tweets.append(item['text'])
         return tweets

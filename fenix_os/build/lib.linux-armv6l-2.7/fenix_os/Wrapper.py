@@ -3,7 +3,7 @@
 
 from minitel.Minitel import Minitel
 from minitel.Sequence import Sequence
-from minitel.constantes import (ENVOI, RETOUR)
+from minitel.constantes import (ENVOI, ANNULATION)
 
 """
 Class attribute :
@@ -30,21 +30,36 @@ class Wrapper: # To get linked with the system that communicate directly with th
             if (self.minitel.definir_vitesse(300) == False):
                 return (1)
         self.minitel.identifier()
+        while (self.minitel.capacite['nom'] == "Minitel inconnu"):
+            time.sleep(2)
+            self.minitel.identifier()
+
         self.minitel.definir_mode("VIDEOTEX")
         print("{} - {}".format(self.minitel.capacite['nom'], self.minitel.capacite['vitesse']))
         self.minitel.efface()
         self.minitel.debut_ligne()
 
-    def ReadString(self, end = ENVOI):
+    def ReadString(self, end = ENVOI): #TODO: faire un while plus propre while(valeurs != end)
         content = ""
 
         while True:
             received = self.minitel.recevoir_sequence(True, None)
             if (received.valeurs == end):
                 content += '\0'
-                break;
+                break
+            if (received.valeurs == ANNULATION): # Delete this condition after VivaTech event
+                return None
+            if (len(content) + 10) > 140: # Delete this condition after VivaTech event
+                continue
             content += chr(received.valeurs[0])
+            self.minitel.envoyer(received.valeurs[0]) 
         return content
+
+    def DisplayCursor(self, display = True):
+        self.minitel.curseur(display)
+
+    def WaitForAnyInput(self):
+        self.minitel.recevoir_sequence(True, None)    
 
     def WriteString(self, text = "default"):
         nb_column = 40
@@ -56,6 +71,9 @@ class Wrapper: # To get linked with the system that communicate directly with th
         s_send = Sequence()
         s_send.ajoute(text)
         self.minitel.envoyer(s_send)
+
+    def GetModel(self):
+        return self.minitel.capacite['nom']
 
     def WriteLnString(self, text = ""):
         nb_column = 40
@@ -70,6 +88,9 @@ class Wrapper: # To get linked with the system that communicate directly with th
         s_send = Sequence()
         s_send.ajoute(text)
         self.minitel.envoyer(s_send)
+
+    def ClearScreen(self):
+        self.minitel.efface()
 
     def GetMinitel(self):
         return (self.minitel)
