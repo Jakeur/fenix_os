@@ -1,0 +1,4 @@
+left = 113
+right = 114
+up = 111
+down = 116
